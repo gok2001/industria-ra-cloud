@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, render_template
+from flask import Flask, jsonify
 
 
 app = Flask(__name__)
@@ -53,9 +53,9 @@ def telemetria(id):
             "erro": "telemetria não existente"
         }), 404
 
-    equipamento = dados_telemetria[id]
+    telemetria_equipamento = dados_telemetria[id]
 
-    return jsonify(equipamento)
+    return jsonify(telemetria_equipamento)
 
 
 if __name__ == "__main__":
