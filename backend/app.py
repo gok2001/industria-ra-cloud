@@ -1,16 +1,34 @@
 from flask import Flask, jsonify, render_template
 
+
 app = Flask(__name__)
+
+dados_equipamentos = {
+    "CNC-01": {
+        "id": "CNC-01",
+        "tipo": "Torno CNC",
+        "setor": "Usinagem",
+        "status": "operacional"
+    },
+    "CNC-02": {
+        "id": "CNC-02",
+        "tipo": "Torno CNC",
+        "setor": "Usinagem",
+        "status": "inoperante"
+    }
+}
 
 
 @app.route("/api/equipamentos/<id>")
 def equipamentos(id):
-    return jsonify({
-        "id": id,
-        "tipo": "Torno CNC",
-        "setor": "Usinagem",
-        "status": "operacional"
-    })
+    if id not in dados_equipamentos:
+        return jsonify({
+            "erro": "equipamento não existente"
+        }), 404
+
+    equipamento = dados_equipamentos[id]
+
+    return jsonify(equipamento)
 
 
 @app.route("/api/equipamentos/<id>/telemetria")
