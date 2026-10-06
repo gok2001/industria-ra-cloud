@@ -47,16 +47,29 @@ document.addEventListener(
 
         const information = {
 
+            base: {
+
+                title:
+                    "Base do robô industrial",
+
+                text:
+                    "A base sustenta o robô e permite que a estrutura permaneça posicionada de forma estável durante a operação.",
+
+                detail:
+                    "A estabilidade da base é importante para o funcionamento adequado do equipamento."
+            },
+
+
             braco: {
 
                 title:
                     "Braço do robô industrial",
 
                 text:
-                    "O braço é responsável pelos movimentos do robô e permite posicionar o conjunto mecânico em diferentes pontos de trabalho.",
+                    "O braço realiza os movimentos principais do robô e permite posicionar o conjunto mecânico em diferentes pontos de trabalho.",
 
                 detail:
-                    "As informações apresentadas nesta experiência são didáticas."
+                    "Os movimentos variam de acordo com o modelo e a aplicação do robô."
             },
 
 
@@ -66,36 +79,23 @@ document.addEventListener(
                     "Punho do robô",
 
                 text:
-                    "O punho permite movimentos de orientação na extremidade do robô, possibilitando posicionar corretamente a ferramenta ou o efetuador.",
+                    "O punho está localizado na extremidade do braço e permite orientar corretamente a ferramenta utilizada pelo robô.",
 
                 detail:
-                    "A configuração do punho depende do modelo e da aplicação do robô."
+                    "A configuração do punho depende do modelo e da aplicação do equipamento."
             },
 
 
-            painel: {
+            garra: {
 
                 title:
-                    "Painel de controle",
+                    "Garra do robô",
 
                 text:
-                    "O painel de controle permite ao operador acompanhar e controlar funções relacionadas à operação do robô.",
+                    "A garra é o elemento responsável por segurar, movimentar ou manipular objetos durante determinadas operações.",
 
                 detail:
-                    "Os dados apresentados nesta experiência possuem finalidade didática."
-            },
-
-
-            seguranca: {
-
-                title:
-                    "Área de segurança",
-
-                text:
-                    "A área de segurança possui a função de manter pessoas afastadas das regiões de movimentação do equipamento.",
-
-                detail:
-                    "A Realidade Aumentada não substitui treinamento, procedimentos ou documentação do fabricante."
+                    "O tipo de garra utilizado depende da atividade realizada pelo robô."
             }
 
         };
