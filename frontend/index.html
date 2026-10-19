@@ -23,6 +23,27 @@
 
 <body>
 
+    <section id="equipment-selector" class="equipment-selector">
+        <h1>Manual Interativo Industrial</h1>
+        <p>Selecione o equipamento que deseja explorar.</p>
+
+        <div class="equipment-options">
+            <button
+                type="button"
+                class="equipment-button"
+                data-equipment="braco">
+                Braço Robótico Industrial
+            </button>
+
+            <button
+                type="button"
+                class="equipment-button"
+                data-equipment="movel">
+                Robô Móvel Industrial
+            </button>
+        </div>
+    </section>
+
     <header id="hud">
 
         <div class="hud-text">
@@ -148,7 +169,7 @@
         id="ar-scene"
 
         mindar-image="
-            imageTargetSrc: assets/targets/robo_industrial.mind;
+            imageTargetSrc: assets/targets/equipamentos.mind;
             autoStart: true;
             uiLoading: yes;
             uiScanning: yes;
@@ -174,8 +195,13 @@
         </a-camera>
 
         <a-entity
-            id="target"
+            id="target-braco"
             mindar-image-target="targetIndex: 0">
+        </a-entity>
+
+        <a-entity
+            id="target-movel"
+            mindar-image-target="targetIndex: 1">
         </a-entity>
 
     </a-scene>
