@@ -2,6 +2,8 @@ document.addEventListener(
     "DOMContentLoaded",
     () => {
 
+        
+        const API_TELEMETRIA_URL = "";
 
         const scene =
             document.querySelector("#ar-scene");
@@ -96,7 +98,16 @@ document.addEventListener(
 
                 detail:
                     "O tipo de garra utilizado depende da atividade realizada pelo robô."
+            },
+
+            
+            monitoramento: {
+
+                title: "Monitoramento industrial — CNC-01",
+                text: "Consulte os dados atuais do equipamento.",
+                detail: "Aguardando consulta à API."
             }
+
 
         };
 
@@ -131,6 +142,48 @@ document.addEventListener(
             );
         }
 
+        
+        async function consultarTelemetria() {
+            panelTitle.textContent = "Monitoramento industrial — CNC-01";
+            panelText.textContent = "Consultando dados do equipamento...";
+            panelDetail.textContent = "Aguardando resposta da API.";
+            panel.classList.remove("hidden");
+
+            if (!API_TELEMETRIA_URL) {
+                panelText.textContent =
+                    "A conexão com a API ainda não foi configurada.";
+
+                panelDetail.textContent =
+                    "Aguardando o endereço do endpoint do BackEnd.";
+
+                return;
+            }
+
+            try {
+                const response = await fetch(API_TELEMETRIA_URL);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const dados = await response.json();
+
+                panelText.textContent =
+                    `Temperatura: ${dados.temperatura ?? "Indisponível"} | ` +
+                    `Vibração: ${dados.vibracao ?? "Indisponível"}`;
+
+                panelDetail.textContent =
+                    `Status: ${dados.status ?? "Indisponível"}`;
+            } catch (error) {
+                console.error("Erro ao consultar telemetria:", error);
+
+                panelText.textContent =
+                    "Não foi possível consultar os dados do equipamento.";
+
+                panelDetail.textContent =
+                    "Verifique a disponibilidade da API e tente novamente.";
+            }
+        }
 
         function hideInformation() {
 
@@ -159,10 +212,12 @@ document.addEventListener(
                             button.dataset.topic;
 
 
-                        showInformation(
-                            topicName
-                        );
-                    }
+                        if (topicName === "monitoramento") {
+                            consultarTelemetria();
+                        } else {
+                            showInformation(topicName);
+                        }
+                    }       
                 );
             }
         );
