@@ -1,428 +1,372 @@
-document.addEventListener(
-    "DOMContentLoaded",
-    () => {
 
-        
-        const API_TELEMETRIA_URL = "";
+document.addEventListener("DOMContentLoaded", () => {
+    const API_TELEMETRIA_URL = "";
 
-        const scene =
-            document.querySelector("#ar-scene");
+    const scene = document.querySelector("#ar-scene");
+    const cameraElement = document.querySelector("#ar-camera");
+    const selector = document.querySelector("#equipment-selector");
+    const equipmentButtons = document.querySelectorAll(".equipment-button");
 
-        const target =
-            document.querySelector("#target");
+    const targets = {
+        braco: document.querySelector("#target-braco"),
+        movel: document.querySelector("#target-movel")
+    };
 
-        const cameraElement =
-            document.querySelector("#ar-camera");
+    const status = document.querySelector("#status");
+    const badge = document.querySelector("#badge");
 
+    const panel = document.querySelector("#info-panel");
+    const panelTitle = document.querySelector("#info-title");
+    const panelText = document.querySelector("#info-text");
+    const panelDetail = document.querySelector("#info-detail");
+    const closeButton = document.querySelector("#close-panel");
 
-        const status =
-            document.querySelector("#status");
+    const hotspots = Array.from(
+        document.querySelectorAll(".hotspot")
+    );
 
-        const badge =
-            document.querySelector("#badge");
+    let selectedEquipment = null;
+    let activeTarget = null;
+    let tracking = false;
 
-        const panel =
-            document.querySelector("#info-panel");
-
-        const panelTitle =
-            document.querySelector("#info-title");
-
-        const panelText =
-            document.querySelector("#info-text");
-
-        const panelDetail =
-            document.querySelector("#info-detail");
-
-        const closeButton =
-            document.querySelector("#close-panel");
-
-
-        const hotspots =
-            Array.from(
-                document.querySelectorAll(".hotspot")
-            );
-
-
-        let tracking =
-            false;
-
-
-        const information = {
-
+    // Informações apresentadas pelos pontos interativos.
+    const information = {
+        braco: {
             base: {
-
-                title:
-                    "Base do robô industrial",
-
-                text:
-                    "A base sustenta o robô e permite que a estrutura permaneça posicionada de forma estável durante a operação.",
-
-                detail:
-                    "A estabilidade da base é importante para o funcionamento adequado do equipamento."
+                title: "Base do robô industrial",
+                text: "A base sustenta o robô e mantém sua estrutura posicionada durante a operação.",
+                detail: "A estabilidade é importante para o funcionamento adequado do equipamento."
             },
-
-
             braco: {
-
-                title:
-                    "Braço do robô industrial",
-
-                text:
-                    "O braço realiza os movimentos principais do robô e permite posicionar o conjunto mecânico em diferentes pontos de trabalho.",
-
-                detail:
-                    "Os movimentos variam de acordo com o modelo e a aplicação do robô."
+                title: "Braço robótico",
+                text: "O braço realiza os movimentos principais e posiciona o conjunto mecânico nos pontos de trabalho.",
+                detail: "Os movimentos dependem do modelo e da aplicação do robô."
             },
-
-
             punho: {
-
-                title:
-                    "Punho do robô",
-
-                text:
-                    "O punho está localizado na extremidade do braço e permite orientar corretamente a ferramenta utilizada pelo robô.",
-
-                detail:
-                    "A configuração do punho depende do modelo e da aplicação do equipamento."
+                title: "Punho do robô",
+                text: "O punho fica na extremidade do braço e orienta a ferramenta utilizada pelo robô.",
+                detail: "Sua configuração depende do modelo do equipamento."
             },
-
-
             garra: {
-
-                title:
-                    "Garra do robô",
-
-                text:
-                    "A garra é o elemento responsável por segurar, movimentar ou manipular objetos durante determinadas operações.",
-
-                detail:
-                    "O tipo de garra utilizado depende da atividade realizada pelo robô."
+                title: "Garra do robô",
+                text: "A garra segura, movimenta ou manipula objetos durante determinadas operações.",
+                detail: "O tipo de garra depende da atividade realizada."
             },
-
-            
             monitoramento: {
-
-                title: "Monitoramento industrial — CNC-01",
+                title: "Monitoramento industrial",
                 text: "Consulte os dados atuais do equipamento.",
                 detail: "Aguardando consulta à API."
             }
+        },
 
-
-        };
-
-
-        function showInformation(topicName) {
-
-            const selected =
-                information[topicName];
-
-
-            if (!selected) {
-                return;
+        movel: {
+            base: {
+                title: "Chassi do robô móvel",
+                text: "O chassi sustenta os componentes do robô móvel e serve como estrutura para os demais sistemas.",
+                detail: "A estrutura deve suportar as condições de operação e a carga transportada."
+            },
+            braco: {
+                title: "Sistema de movimentação",
+                text: "O sistema de movimentação permite que o robô se desloque pelo ambiente industrial.",
+                detail: "A configuração pode utilizar rodas, motores e sistemas de controle."
+            },
+            punho: {
+                title: "Sensores do robô móvel",
+                text: "Os sensores ajudam o robô a identificar obstáculos e perceber características do ambiente.",
+                detail: "Os sensores disponíveis variam conforme o modelo."
+            },
+            garra: {
+                title: "Área de carga",
+                text: "A área de carga pode ser utilizada para transportar materiais ou componentes entre setores.",
+                detail: "Respeite sempre os limites de carga definidos pelo fabricante."
+            },
+            monitoramento: {
+                title: "Monitoramento do robô móvel",
+                text: "Consulte os dados atuais do equipamento.",
+                detail: "Aguardando consulta à API."
             }
+        }
+    };
 
+    // Configuração dos hotspots para cada alvo.
+    // As coordenadas são iniciais e podem precisar de ajustes visuais.
+    const equipmentConfig = {
+        braco: {
+            label: "Braço Robótico Industrial",
+            target: targets.braco,
+            hotspots: [
+                { topic: "base", x: -0.25, y: -0.05, z: 0.03, label: "1" },
+                { topic: "braco", x: 0.035, y: 0.28, z: 0.03, label: "2" },
+                { topic: "punho", x: 0.15, y: 0.36, z: 0.03, label: "3" },
+                { topic: "garra", x: 0.11, y: 0.28, z: 0.03, label: "4" },
+                { topic: "monitoramento", x: 0.00, y: 0.10, z: 0.03, label: "Info" }
+            ]
+        },
 
-            panelTitle.textContent =
-                selected.title;
+        movel: {
+            label: "Robô Móvel Industrial",
+            target: targets.movel,
+            hotspots: [
+                { topic: "base", x: 0.00, y: -0.05, z: 0.03, label: "1" },
+                { topic: "braco", x: -0.20, y: 0.00, z: 0.03, label: "2" },
+                { topic: "punho", x: 0.20, y: 0.10, z: 0.03, label: "3" },
+                { topic: "garra", x: 0.00, y: 0.20, z: 0.03, label: "4" },
+                { topic: "monitoramento", x: 0.00, y: 0.00, z: 0.03, label: "Info" }
+            ]
+        }
+    };
 
+    function hideInformation() {
+        panel.classList.add("hidden");
+    }
+
+    function showInformation(topicName) {
+        const selected = information[selectedEquipment]?.[topicName];
+
+        if (!selected) {
+            return;
+        }
+
+        panelTitle.textContent = selected.title;
+        panelText.textContent = selected.text;
+        panelDetail.textContent = selected.detail;
+        panel.classList.remove("hidden");
+    }
+
+    async function consultarTelemetria() {
+        const equipmentName =
+            selectedEquipment === "movel"
+                ? "Robô móvel industrial"
+                : "Robô industrial";
+
+        panelTitle.textContent = `Monitoramento — ${equipmentName}`;
+        panelText.textContent = "Consultando dados do equipamento...";
+        panelDetail.textContent = "Aguardando resposta da API.";
+        panel.classList.remove("hidden");
+
+        if (!API_TELEMETRIA_URL) {
             panelText.textContent =
-                selected.text;
+                "A conexão com a API ainda não foi configurada.";
 
             panelDetail.textContent =
-                selected.detail;
+                "Aguardando o endereço do endpoint do BackEnd.";
 
-
-            /*
-             * Remove a classe hidden
-             * e mostra o painel.
-             */
-            panel.classList.remove(
-                "hidden"
-            );
+            return;
         }
 
-        
-        async function consultarTelemetria() {
-            panelTitle.textContent = "Monitoramento industrial — CNC-01";
-            panelText.textContent = "Consultando dados do equipamento...";
-            panelDetail.textContent = "Aguardando resposta da API.";
-            panel.classList.remove("hidden");
+        try {
+            const response = await fetch(API_TELEMETRIA_URL);
 
-            if (!API_TELEMETRIA_URL) {
-                panelText.textContent =
-                    "A conexão com a API ainda não foi configurada.";
-
-                panelDetail.textContent =
-                    "Aguardando o endereço do endpoint do BackEnd.";
-
-                return;
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
             }
 
-            try {
-                const response = await fetch(API_TELEMETRIA_URL);
+            const dados = await response.json();
 
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}`);
-                }
+            panelText.textContent =
+                `Temperatura: ${dados.temperatura ?? "Indisponível"} | ` +
+                `Vibração: ${dados.vibracao ?? "Indisponível"}`;
 
-                const dados = await response.json();
+            panelDetail.textContent =
+                `Status: ${dados.status ?? "Indisponível"}`;
+        } catch (error) {
+            console.error("Erro ao consultar telemetria:", error);
 
-                panelText.textContent =
-                    `Temperatura: ${dados.temperatura ?? "Indisponível"} | ` +
-                    `Vibração: ${dados.vibracao ?? "Indisponível"}`;
+            panelText.textContent =
+                "Não foi possível consultar os dados do equipamento.";
 
-                panelDetail.textContent =
-                    `Status: ${dados.status ?? "Indisponível"}`;
-            } catch (error) {
-                console.error("Erro ao consultar telemetria:", error);
-
-                panelText.textContent =
-                    "Não foi possível consultar os dados do equipamento.";
-
-                panelDetail.textContent =
-                    "Verifique a disponibilidade da API e tente novamente.";
-            }
+            panelDetail.textContent =
+                "Verifique a disponibilidade da API e tente novamente.";
         }
+    }
 
-        function hideInformation() {
+    function configureHotspots(equipmentKey) {
+        const config = equipmentConfig[equipmentKey];
 
-            panel.classList.add(
-                "hidden"
-            );
-        }
+        hotspots.forEach((button, index) => {
+            const point = config.hotspots[index];
 
+            button.dataset.topic = point.topic;
+            button.dataset.x = point.x;
+            button.dataset.y = point.y;
+            button.dataset.z = point.z;
+            button.textContent = point.label;
 
-        hotspots.forEach(
-            (button) => {
-
-                button.addEventListener(
-                    "pointerup",
-                    (event) => {
-
-                        event.preventDefault();
-
-                        event.stopPropagation();
-
-
-                        /*
-                         * Lê o data-topic do botão.
-                         */
-                        const topicName =
-                            button.dataset.topic;
-
-
-                        if (topicName === "monitoramento") {
-                            consultarTelemetria();
-                        } else {
-                            showInformation(topicName);
-                        }
-                    }       
-                );
-            }
-        );
-
-
-        closeButton.addEventListener(
-            "pointerup",
-            (event) => {
-
-                event.preventDefault();
-
-                hideInformation();
-            }
-        );
-
-
-        scene.addEventListener(
-            "arReady",
-            () => {
-
-                status.textContent =
-                    "Câmera pronta. Aponte para a imagem do robô.";
-
-                badge.textContent =
-                    "PROCURANDO ALVO";
-            }
-        );
-
-
-        scene.addEventListener(
-            "arError",
-            () => {
-
-                status.textContent =
-                    "Não foi possível iniciar a câmera.";
-
-                badge.textContent =
-                    "ERRO";
-            }
-        );
-
-
-        target.addEventListener(
-            "targetFound",
-            () => {
-
-                tracking =
-                    true;
-
-
-                status.textContent =
-                    "Robô reconhecido. Toque em um ponto numerado.";
-
-                badge.textContent =
-                    "● RA ATIVA";
-
-
-                hotspots.forEach(
-                    (button) => {
-
-                        button.classList.add(
-                            "visible"
-                        );
-                    }
-                );
-            }
-        );
-
-
-        target.addEventListener(
-            "targetLost",
-            () => {
-
-                tracking =
-                    false;
-
-
-                status.textContent =
-                    "Alvo perdido. Aponte novamente para a imagem.";
-
-                badge.textContent =
-                    "PROCURANDO ALVO";
-
-
-                hotspots.forEach(
-                    (button) => {
-
-                        button.classList.remove(
-                            "visible"
-                        );
-                    }
-                );
-
-
-                hideInformation();
-            }
-        );
-
-
-        function updateHotspotPositions() {
-
-
-            /*
-             * Agenda a próxima atualização.
-             */
-            requestAnimationFrame(
-                updateHotspotPositions
+            button.setAttribute(
+                "aria-label",
+                information[equipmentKey][point.topic].title
             );
 
+            button.classList.remove("visible");
+            button.style.visibility = "hidden";
+        });
+    }
+
+    function selectEquipment(equipmentKey) {
+        if (!equipmentConfig[equipmentKey]) {
+            return;
+        }
+
+        selectedEquipment = equipmentKey;
+        activeTarget = equipmentConfig[equipmentKey].target;
+        tracking = false;
+
+        configureHotspots(equipmentKey);
+        hideInformation();
+
+        selector.classList.add("hidden");
+
+        status.textContent =
+            `Aponte a câmera para: ${equipmentConfig[equipmentKey].label}`;
+
+        badge.textContent = "PROCURANDO ALVO";
+    }
+
+    equipmentButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+            selectEquipment(button.dataset.equipment);
+        });
+    });
+
+    hotspots.forEach((button) => {
+        button.addEventListener("pointerup", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
 
             if (!tracking) {
                 return;
             }
 
+            const topicName = button.dataset.topic;
 
-            const camera =
-                cameraElement.getObject3D(
-                    "camera"
-                );
-
-
-            if (
-                !camera ||
-                !target.object3D
-            ) {
-                return;
+            if (topicName === "monitoramento") {
+                consultarTelemetria();
+            } else {
+                showInformation(topicName);
             }
+        });
+    });
 
+    closeButton.addEventListener("click", hideInformation);
 
-            target.object3D.updateMatrixWorld(
-                true
-            );
+    scene.addEventListener("arReady", () => {
+        status.textContent =
+            "Câmera pronta. Selecione um equipamento.";
 
-            camera.updateMatrixWorld(
-                true
-            );
+        badge.textContent = "CÂMERA PRONTA";
+    });
 
+    scene.addEventListener("arError", () => {
+        status.textContent =
+            "Não foi possível iniciar a câmera. Verifique a permissão de acesso.";
 
-            hotspots.forEach(
-                (button) => {
+        badge.textContent = "ERRO";
+    });
 
-
-                    const localPoint =
-                        new THREE.Vector3(
-                            Number(button.dataset.x),
-                            Number(button.dataset.y),
-                            Number(button.dataset.z)
-                        );
-
-
-                    const worldPoint =
-                        target.object3D.localToWorld(
-                            localPoint
-                        );
-
-
-                    const projectedPoint =
-                        worldPoint
-                            .clone()
-                            .project(
-                                camera
-                            );
-
-
-                    const screenX =
-                        (
-                            projectedPoint.x * 0.5 +
-                            0.5
-                        ) *
-                        window.innerWidth;
-
-
-                    const screenY =
-                        (
-                            -projectedPoint.y * 0.5 +
-                            0.5
-                        ) *
-                        window.innerHeight;
-
-
-                    button.style.left =
-                        `${screenX}px`;
-
-                    button.style.top =
-                        `${screenY}px`;
-
-
-                    const insideScreen =
-                        projectedPoint.z > -1 &&
-                        projectedPoint.z < 1 &&
-                        screenX > -80 &&
-                        screenX < window.innerWidth + 80 &&
-                        screenY > -80 &&
-                        screenY < window.innerHeight + 80;
-
-
-                    button.style.visibility =
-                        insideScreen
-                            ? "visible"
-                            : "hidden";
-                }
-            );
+    function handleTargetFound(equipmentKey) {
+        if (equipmentKey !== selectedEquipment) {
+            return;
         }
 
-        updateHotspotPositions();
+        activeTarget = equipmentConfig[equipmentKey].target;
+        tracking = true;
 
+        status.textContent =
+            "Equipamento reconhecido. Toque em um ponto interativo.";
+
+        badge.textContent = "● RA ATIVA";
+
+        hotspots.forEach((button) => {
+            button.classList.add("visible");
+        });
     }
-);
+
+    function handleTargetLost(equipmentKey) {
+        if (equipmentKey !== selectedEquipment) {
+            return;
+        }
+
+        tracking = false;
+
+        status.textContent =
+            `Alvo perdido. Aponte novamente para: ${equipmentConfig[equipmentKey].label}`;
+
+        badge.textContent = "PROCURANDO ALVO";
+
+        hotspots.forEach((button) => {
+            button.classList.remove("visible");
+            button.style.visibility = "hidden";
+        });
+
+        hideInformation();
+    }
+
+    targets.braco.addEventListener("targetFound", () => {
+        handleTargetFound("braco");
+    });
+
+    targets.braco.addEventListener("targetLost", () => {
+        handleTargetLost("braco");
+    });
+
+    targets.movel.addEventListener("targetFound", () => {
+        handleTargetFound("movel");
+    });
+
+    targets.movel.addEventListener("targetLost", () => {
+        handleTargetLost("movel");
+    });
+
+    function updateHotspotPositions() {
+        requestAnimationFrame(updateHotspotPositions);
+
+        if (!tracking || !activeTarget?.object3D) {
+            return;
+        }
+
+        const camera = cameraElement.getObject3D("camera");
+
+        if (!camera) {
+            return;
+        }
+
+        activeTarget.object3D.updateMatrixWorld(true);
+        camera.updateMatrixWorld(true);
+
+        hotspots.forEach((button) => {
+            const localPoint = new THREE.Vector3(
+                Number(button.dataset.x),
+                Number(button.dataset.y),
+                Number(button.dataset.z)
+            );
+
+            const worldPoint =
+                activeTarget.object3D.localToWorld(localPoint);
+
+            const projectedPoint =
+                worldPoint.clone().project(camera);
+
+            const screenX =
+                (projectedPoint.x * 0.5 + 0.5) * window.innerWidth;
+
+            const screenY =
+                (-projectedPoint.y * 0.5 + 0.5) * window.innerHeight;
+
+            button.style.left = `${screenX}px`;
+            button.style.top = `${screenY}px`;
+
+            const insideScreen =
+                projectedPoint.z > -1 &&
+                projectedPoint.z < 1 &&
+                screenX > -80 &&
+                screenX < window.innerWidth + 80 &&
+                screenY > -80 &&
+                screenY < window.innerHeight + 80;
+
+            button.style.visibility =
+                insideScreen ? "visible" : "hidden";
+        });
+    }
+
+    updateHotspotPositions();
+});

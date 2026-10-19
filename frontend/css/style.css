@@ -334,3 +334,77 @@ a-scene {
     background: #00897b;
     border-color: #ffffff;
 }
+
+
+/* Seletor de equipamento */
+.equipment-selector {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 16px;
+
+    padding: 24px;
+    text-align: center;
+    color: #ffffff;
+
+    background: rgba(3, 18, 33, 0.96);
+}
+
+.equipment-selector h1 {
+    margin: 0;
+    font-size: clamp(24px, 5vw, 36px);
+}
+
+.equipment-selector p {
+    max-width: 420px;
+    line-height: 1.5;
+    color: #cbd5e1;
+}
+
+.equipment-options {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: min(100%, 340px);
+}
+
+.equipment-button {
+    min-height: 58px;
+    padding: 14px 18px;
+
+    border: 1px solid #38bdf8;
+    border-radius: 12px;
+
+    background: #075985;
+    color: #ffffff;
+
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.equipment-button:hover {
+    background: #0369a1;
+}
+
+.equipment-button:focus-visible {
+    outline: 3px solid #facc15;
+    outline-offset: 3px;
+}
+
+@media (min-width: 600px) {
+    .equipment-options {
+        flex-direction: row;
+        width: min(100%, 620px);
+    }
+
+    .equipment-button {
+        flex: 1;
+    }
+}
