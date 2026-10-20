@@ -3,7 +3,7 @@ import time
 import random
 
 broker = "127.0.0.1"
-port = 1883
+port = 1884
 
 equipamento_id = "CNC-01"
 
