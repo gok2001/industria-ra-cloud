@@ -1,29 +1,63 @@
-import paho.mqtt.client as mqtt
-import time
+import os
 import random
+import time
+import logging
+import paho.mqtt.client as mqtt
 
-broker = "127.0.0.1"
-port = 1884
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
+BROKER = os.getenv('MQTT_BROKER', '127.0.0.1')
+PORTA = int(os.getenv('MQTT_PORT', '1883'))
+EQUIPAMENTO = os.getenv('EQUIPAMENTO_ID', 'CNC-01')
+INTERVALO = float(os.getenv('INTERVALO_SEGUNDOS', '2'))
+conectado = False
 
-equipamento_id = "CNC-01"
 
-topico_temperatura = f"industria/{equipamento_id}/temperatura"
-topico_vibracao = f"industria/{equipamento_id}/vibracao"
-topico_status = f"industria/{equipamento_id}/status"
+def on_connect(client, userdata, flags, reason_code, properties):
+    global conectado
+    conectado = reason_code == 0
+    logging.info('Conexão MQTT: %s', reason_code)
 
-client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
-client.connect(broker, port, 60)
+def on_disconnect(client, userdata, disconnect_flags, reason_code, properties):
+    global conectado
+    conectado = False
+    logging.warning('Desconectado do MQTT: %s', reason_code)
 
-while True:
-    temperatura = round(random.uniform(30, 50), 2)
-    vibracao = round(random.uniform(1, 3), 2)
-    status = random.choice(["operando", "desligado"])
 
-    client.publish(topico_temperatura, temperatura)
-    client.publish(topico_vibracao, vibracao)
-    client.publish(topico_status, status)
+def main():
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
+    client.on_connect = on_connect
+    client.on_disconnect = on_disconnect
+    client.connect_async(BROKER, PORTA, keepalive=60)
+    client.loop_start()
 
-    print(f"temperatura: {temperatura} | vibracao: {vibracao} | status: {status}")
+    try:
+        while True:
+            if conectado:
+                leituras = {
+                    'temperatura': round(random.uniform(30, 50), 2),
+                    'vibracao': round(random.uniform(1, 3), 2),
+                    'status': random.choice(['operando', 'desligado']),
+                }
 
-    time.sleep(2)
+                for indicador, valor in leituras.items():
+                    topico = f'industria/{EQUIPAMENTO}/{indicador}'
+                    client.publish(topico, str(valor), qos=1)
+
+                logging.info('%s: %s', EQUIPAMENTO, leituras)
+
+            else:
+                logging.info('Aguardando conexão com broker...')
+
+            time.sleep(INTERVALO)
+
+    except KeyboardInterrupt:
+        logging.info('Simulador interrompido')
+
+    finally:
+        client.disconnect()
+        client.loop_stop()
+
+
+if __name__ == '__main__':
+    main()
