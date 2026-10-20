@@ -2,8 +2,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // A API usa o mesmo hostname do frontend nos testes locais.
     // Em hospedagem HTTPS, forneça ?api=https://endereco-da-api
     const parametros = new URLSearchParams(window.location.search);
-    const API_BASE = (parametros.get("api") ||
-        `${window.location.protocol}//${window.location.hostname}:5000`).replace(/\/$/, "");
+    const API_BASE = "http://localhost:5000";
     const EQUIPMENT_IDS = { braco: "Robo-01", movel: "Robo-02" };
 
     const scene = document.querySelector("#ar-scene");
