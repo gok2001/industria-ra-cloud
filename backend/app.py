@@ -1,141 +1,124 @@
-from flask import Flask, jsonify
-import paho.mqtt.client as mqtt
+import os
+import logging
 from datetime import datetime
 from threading import Lock
 
+import paho.mqtt.client as mqtt
+from flask import Flask, jsonify
+from flask_cors import CORS
+
+logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-
-BROKER = "127.0.0.1"
-PORTA_MQTT = 1883
-TOPICO_MQTT = "industria/#"
-
-telemetria_lock = Lock()
+CORS(app, resources={r'/api/*': {'origins': os.getenv('CORS_ORIGINS', '*')}})
+BROKER = os.getenv('MQTT_BROKER', '127.0.0.1')
+MQTT_PORT = int(os.getenv('MQTT_PORT', '1883'))
+lock = Lock()
 
 dados_equipamentos = {
-    "CNC-01": {
-        "id": "CNC-01",
-        "tipo": "Torno CNC",
-        "setor": "Usinagem",
-        "status": "operacional"
-    },
-    "CNC-02": {
-        "id": "CNC-02",
-        "tipo": "Torno CNC",
-        "setor": "Usinagem",
-        "status": "inoperante"
-    }
+    'CNC-01': {'id': 'CNC-01', 'tipo': 'Torno CNC', 'setor': 'Usinagem', 'status': 'operacional'},
+    'CNC-02': {'id': 'CNC-02', 'tipo': 'Torno CNC', 'setor': 'Usinagem', 'status': 'inoperante'},
 }
-
 dados_telemetria = {
-    "CNC-01": {
-        "temperatura": 41.8,
-        "vibracao": 2.3,
-        "status": "operando",
-        "atualizacao": "10:42:16"
-    },
-    "CNC-02": {
-        "temperatura": 32.6,
-        "vibracao": 1.4,
-        "status": "desligado",
-        "atualizacao": "13:53:51"
-    }
+    'CNC-01': {'temperatura': None, 'vibracao': None, 'status': 'aguardando dados', 'atualizacao': None},
+    'CNC-02': {'temperatura': None, 'vibracao': None, 'status': 'aguardando dados', 'atualizacao': None},
 }
 
 
 def on_connect(client, userdata, flags, reason_code, properties):
     if reason_code == 0:
-        print("Conectado ao broker MQTT!")
+        client.subscribe('industria/+/+')
+        logger.info('MQTT conectado e inscrito em industria/+/+')
 
-        client.subscribe(TOPICO_MQTT)
-
-        print(f"Inscrito no tópico: {TOPICO_MQTT}")
     else:
-        print(f"Falha na conexão MQTT: {reason_code}")
+        logger.warning('MQTT recusou conexão: %s', reason_code)
 
 
 def on_message(client, userdata, msg):
-    partes = msg.topic.split("/")
+    partes = msg.topic.split('/')
 
-    if len(partes) != 3 or partes[0] != "industria":
+    if len(partes) != 3 or partes[0] != 'industria':
         return
 
-    equipamento_id = partes[1]
-    indicador = partes[2]
+    _, equipamento, indicador = partes
 
-    if indicador not in ("temperatura", "vibracao", "status"):
+    if indicador not in ('temperatura', 'vibracao', 'status'):
         return
 
     try:
-        valor = msg.payload.decode("utf-8")
+        valor = msg.payload.decode('utf-8')
 
-        if indicador in ("temperatura", "vibracao"):
+        if indicador != 'status':
             valor = float(valor)
 
-    except (UnicodeDecodeError, ValueError):
-        print(f"Mensagem inválida: {msg.topic}")
+            if not -1000 <= valor <= 1000:
+                raise ValueError('valor fora do intervalo de validação técnica')
+
+        elif len(valor) > 80:
+            raise ValueError('status muito longo')
+
+    except (UnicodeDecodeError, ValueError) as exc:
+        logger.warning('Mensagem ignorada (%s): %s', msg.topic, exc)
+
         return
 
-    with telemetria_lock:
-        if equipamento_id not in dados_telemetria:
-            print(f"Equipamento desconhecido: {equipamento_id}")
+    with lock:
+        if equipamento not in dados_telemetria:
+            logger.warning('Equipamento não cadastrado: %s', equipamento)
+
             return
 
-        dados_telemetria[equipamento_id][indicador] = valor
+        dados_telemetria[equipamento][indicador] = valor
+        dados_telemetria[equipamento]['atualizacao'] = datetime.now().astimezone().isoformat(timespec='seconds')
 
-        dados_telemetria[equipamento_id]["atualizacao"] = (
-            datetime.now().strftime("%H:%M:%S")
-        )
-
-    print(f"MQTT recebido: {equipamento_id} | {indicador}: {valor}")
+    logger.info('Atualizado %s/%s = %s', equipamento, indicador, valor)
 
 
-@app.route("/api/equipamentos/<id>")
+@app.get('/api/health')
+def health():
+    return jsonify({'servico': 'api', 'status': 'ok'})
+
+
+@app.get('/api/equipamentos/<id>')
 def equipamentos(id):
-    if id not in dados_equipamentos:
-        return jsonify({
-            "erro": "equipamento não existente"
-        }), 404
+    equipamento = dados_equipamentos.get(id)
 
-    equipamento = dados_equipamentos[id]
+    if equipamento is None:
+        return jsonify({'erro': 'equipamento não existente'}), 404
 
     return jsonify(equipamento)
 
 
-@app.route("/api/equipamentos/<id>/telemetria")
+@app.get('/api/equipamentos/<id>/telemetria')
 def telemetria(id):
-    if id not in dados_telemetria:
-        return jsonify({
-            "erro": "telemetria não existente"
-        }), 404
+    with lock:
+        equipamento = dados_telemetria.get(id)
 
-    telemetria_equipamento = dados_telemetria[id]
+        if equipamento is None:
+            return jsonify({'erro': 'telemetria não existente'}), 404
 
-    return jsonify(telemetria_equipamento)
+        copia = equipamento.copy()
+
+    return jsonify(copia)
 
 
 def iniciar_mqtt():
     client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
-
     client.on_connect = on_connect
     client.on_message = on_message
-
-    client.connect(BROKER, PORTA_MQTT, 60)
+    client.connect_async(BROKER, MQTT_PORT, keepalive=60)
     client.loop_start()
 
     return client
 
 
-if __name__ == "__main__":
-    cliente_mqtt = iniciar_mqtt()
+if __name__ == '__main__':
+    cliente = iniciar_mqtt()
 
     try:
-        app.run(
-            host="0.0.0.0",
-            port=5000,
-            debug=True,
-            use_reloader=False
-        )
+        app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+
     finally:
-        cliente_mqtt.loop_stop()
-        cliente_mqtt.disconnect()
+        cliente.disconnect()
+        cliente.loop_stop()
