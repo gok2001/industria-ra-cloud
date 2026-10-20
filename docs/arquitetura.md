@@ -1,15 +1,11 @@
-# Arquitetura do protótipo
+# Arquitetura
 
 ```mermaid
 flowchart TD
-  A[Imagem target CNC-01] --> B[WebAR MindAR + A-Frame]
-  B -->|HTTP GET / JSON| C[API Flask]
-  D[Simulador Python] -->|publish: industria/CNC-01/*| E[Broker Mosquitto]
-  E -->|subscribe: industria/+/+| C
-  C -->|JSON atualizado| B
-  F[Docker Compose] -.-> C
-  F -.-> D
-  F -.-> E
+  SIM1[Simulador Robo-01] -->|MQTT| M[Mosquitto]
+  SIM2[Simulador Robo-02] -->|MQTT| M
+  M -->|Subscribe industria/+/+| API[Flask]
+  WEB[WebAR MindAR / A-Frame] -->|HTTP GET /api/equipamentos/id/telemetria| API
 ```
 
-Para gerar `docs/arquitetura.png`, abra este Markdown em um visualizador Mermaid e exporte o diagrama como PNG.
+As leituras são simuladas. O frontend utiliza a imagem target para identificar o robô, mostra hotspots técnicos estáticos e consulta o Flask apenas no hotspot de monitoramento. O backend guarda os valores mais recentes em memória; reiniciar o processo descarta as últimas leituras até chegarem novas mensagens.

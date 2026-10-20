@@ -7,7 +7,7 @@ import paho.mqtt.client as mqtt
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(message)s')
 BROKER = os.getenv('MQTT_BROKER', '127.0.0.1')
 PORTA = int(os.getenv('MQTT_PORT', '1883'))
-EQUIPAMENTO = os.getenv('EQUIPAMENTO_ID', 'CNC-01')
+EQUIPAMENTO = os.getenv('EQUIPAMENTO_ID', 'Robo-01')
 INTERVALO = float(os.getenv('INTERVALO_SEGUNDOS', '2'))
 conectado = False
 

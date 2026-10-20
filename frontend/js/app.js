@@ -1,6 +1,10 @@
-
 document.addEventListener("DOMContentLoaded", () => {
-    const API_TELEMETRIA_URL = "";
+    // A API usa o mesmo hostname do frontend nos testes locais.
+    // Em hospedagem HTTPS, forneça ?api=https://endereco-da-api
+    const parametros = new URLSearchParams(window.location.search);
+    const API_BASE = (parametros.get("api") ||
+        `${window.location.protocol}//${window.location.hostname}:5000`).replace(/\/$/, "");
+    const EQUIPMENT_IDS = { braco: "Robo-01", movel: "Robo-02" };
 
     const scene = document.querySelector("#ar-scene");
     const cameraElement = document.querySelector("#ar-camera");
@@ -144,18 +148,15 @@ document.addEventListener("DOMContentLoaded", () => {
         panelDetail.textContent = "Aguardando resposta da API.";
         panel.classList.remove("hidden");
 
-        if (!API_TELEMETRIA_URL) {
-            panelText.textContent =
-                "A conexão com a API ainda não foi configurada.";
-
-            panelDetail.textContent =
-                "Aguardando o endereço do endpoint do BackEnd.";
-
+        const id = EQUIPMENT_IDS[selectedEquipment];
+        if (!id) {
+            panelText.textContent = "Selecione um equipamento primeiro.";
             return;
         }
 
         try {
-            const response = await fetch(API_TELEMETRIA_URL);
+            const url = `${API_BASE}/api/equipamentos/${encodeURIComponent(id)}/telemetria`;
+            const response = await fetch(url, { cache: "no-store" });
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
@@ -168,7 +169,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 `Vibração: ${dados.vibracao ?? "Indisponível"}`;
 
             panelDetail.textContent =
-                `Status: ${dados.status ?? "Indisponível"}`;
+                `Status: ${dados.status ?? "Indisponível"} | ` +
+                `Atualização: ${dados.atualizacao ?? "Aguardando dados"}`;
         } catch (error) {
             console.error("Erro ao consultar telemetria:", error);
 

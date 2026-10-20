@@ -17,12 +17,12 @@ MQTT_PORT = int(os.getenv('MQTT_PORT', '1883'))
 lock = Lock()
 
 dados_equipamentos = {
-    'CNC-01': {'id': 'CNC-01', 'tipo': 'Torno CNC', 'setor': 'Usinagem', 'status': 'operacional'},
-    'CNC-02': {'id': 'CNC-02', 'tipo': 'Torno CNC', 'setor': 'Usinagem', 'status': 'inoperante'},
+    'Robo-01': {'id': 'Robo-01', 'tipo': 'Braço robótico', 'setor': 'Automação', 'status': 'operacional'},
+    'Robo-02': {'id': 'Robo-02', 'tipo': 'Móvel', 'setor': '', 'status': 'inoperante'},
 }
 dados_telemetria = {
-    'CNC-01': {'temperatura': None, 'vibracao': None, 'status': 'aguardando dados', 'atualizacao': None},
-    'CNC-02': {'temperatura': None, 'vibracao': None, 'status': 'aguardando dados', 'atualizacao': None},
+    'Robo-01': {'temperatura': None, 'vibracao': None, 'status': 'aguardando dados', 'atualizacao': None},
+    'Robo-02': {'temperatura': None, 'vibracao': None, 'status': 'aguardando dados', 'atualizacao': None},
 }
 
 
