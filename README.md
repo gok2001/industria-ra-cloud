@@ -73,3 +73,112 @@ A API responde erro HTTP 404 para equipamentos desconhecidos. O frontend preserv
 Execute e registre os testes em `docs/testes.md`. A aplicação não foi validada neste ambiente com Docker ou câmera física. É necessário validar reconhecimento dos targets, posicionamento dos hotspots, HTTPS no celular e publicação da URL final.
 
 **Docker** empacota as dependências de cada serviço; **Compose** configura rede e execução integrada. No cenário de uma VM gerenciada pela equipe, a infraestrutura é próxima de **IaaS**; numa plataforma que gerencia runtime, **PaaS**; no uso da aplicação pronta pelo técnico, **SaaS** sob a perspectiva do usuário.
+
+## Execução do projeto
+
+O projeto possui um frontend de realidade aumentada (RA) e um backend desenvolvido em Flask, integrado ao protocolo MQTT para recebimento de dados de telemetria dos equipamentos industriais.
+
+### Demonstração online
+
+O frontend está publicado no GitHub Pages:
+
+https://gok2001.github.io/industria-ra-cloud/
+
+A versão online permite demonstrar a interface e os recursos de realidade aumentada. Entretanto, a consulta de telemetria pelo botão **Info** não está disponível nessa configuração.
+
+Isso acontece porque o GitHub Pages utiliza HTTPS, enquanto a API Flask é executada localmente por HTTP. Os navegadores bloqueiam esse tipo de requisição por motivos de segurança (*Mixed Content*).
+
+Para utilizar a integração com a API, execute o projeto localmente conforme as instruções abaixo.
+
+### Execução local completa
+
+**Pré-requisitos:**
+
+- Docker e Docker Compose instalados.
+- Python 3 instalado.
+- Navegador compatível com os recursos de câmera e realidade aumentada.
+
+**1. Iniciar os serviços do backend**
+
+Na raiz do projeto, execute:
+
+```bash
+docker compose up -d --build
+```
+
+Confira se os containers estão funcionando:
+
+```bash
+docker compose ps
+```
+
+**2. Verificar a API**
+
+Acesse:
+
+```text
+http://localhost:5000/api/health
+```
+
+A resposta esperada é:
+
+```json
+{
+  "servico": "api",
+  "status": "ok"
+}
+```
+
+Também é possível consultar diretamente a telemetria de um equipamento:
+
+```text
+http://localhost:5000/api/equipamentos/Robo-01/telemetria
+```
+
+**3. Configurar o endereço da API**
+
+No arquivo `frontend/js/app.js`, configure:
+
+```javascript
+const API_BASE = "http://localhost:5000";
+```
+
+**4. Iniciar o frontend**
+
+A partir da raiz do projeto, execute:
+
+```bash
+cd frontend
+python -m http.server 8080
+```
+
+Acesse no navegador:
+
+```text
+http://localhost:8080
+```
+
+**5. Testar a integração**
+
+Selecione um equipamento, permita o acesso à câmera e aponte para o alvo de realidade aumentada correspondente.
+
+Após o reconhecimento, clique no botão **Info** para consultar os dados do equipamento fornecidos pela API Flask.
+
+Os campos de temperatura e vibração podem aparecer como indisponíveis enquanto não houver mensagens MQTT recebidas. Isso não significa necessariamente uma falha na comunicação com a API.
+
+### Limitações
+
+- O backend deve estar em execução para que a consulta de telemetria funcione.
+- A integração local foi configurada para acesso pelo navegador do próprio computador.
+- A versão hospedada no GitHub Pages não se comunica diretamente com a API HTTP local.
+- Para disponibilizar a integração completa pela internet, seria necessário expor a API por HTTPS, com configurações adequadas de segurança.
+
+### Encerramento
+
+Para interromper o servidor HTTP do frontend, pressione `Ctrl+C` no terminal correspondente.
+
+Para encerrar os serviços Docker:
+
+```bash
+docker compose down
+```

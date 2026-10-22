@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
-    const parametros = new URLSearchParams(window.location.search);
-    const API_BASE = (parametros.get("api") || `http://${window.location.hostname}:5000`).replace(/\/$/, "");
+    const API_BASE = "http://localhost:5000";
     const EQUIPMENT_IDS = { braco: "Robo-01", movel: "Robo-02" };
 
     const scene = document.querySelector("#ar-scene");
