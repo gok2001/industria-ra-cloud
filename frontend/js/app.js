@@ -1,8 +1,6 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // A API usa o mesmo hostname do frontend nos testes locais.
-    // Em hospedagem HTTPS, forneça ?api=https://endereco-da-api
     const parametros = new URLSearchParams(window.location.search);
-    const API_BASE = "http://localhost:5000";
+    const API_BASE = (parametros.get("api") || `http://${window.location.hostname}:5000`).replace(/\/$/, "");
     const EQUIPMENT_IDS = { braco: "Robo-01", movel: "Robo-02" };
 
     const scene = document.querySelector("#ar-scene");
@@ -136,9 +134,12 @@ document.addEventListener("DOMContentLoaded", () => {
         panel.classList.remove("hidden");
     }
 
+    
     async function consultarTelemetria() {
+        const equipamentoSelecionado = selectedEquipment;
+
         const equipmentName =
-            selectedEquipment === "movel"
+            equipamentoSelecionado === "movel"
                 ? "Robô móvel industrial"
                 : "Robô industrial";
 
@@ -147,21 +148,38 @@ document.addEventListener("DOMContentLoaded", () => {
         panelDetail.textContent = "Aguardando resposta da API.";
         panel.classList.remove("hidden");
 
-        const id = EQUIPMENT_IDS[selectedEquipment];
+        const id = EQUIPMENT_IDS[equipamentoSelecionado];
+
         if (!id) {
             panelText.textContent = "Selecione um equipamento primeiro.";
+            panelDetail.textContent = "";
             return;
         }
 
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 8000);
+
         try {
-            const url = `${API_BASE}/api/equipamentos/${encodeURIComponent(id)}/telemetria`;
-            const response = await fetch(url, { cache: "no-store" });
+            const url =
+                `${API_BASE}/api/equipamentos/${encodeURIComponent(id)}/telemetria`;
+
+            console.log("Consultando API:", url);
+
+            const response = await fetch(url, {
+                method: "GET",
+                cache: "no-store",
+                signal: controller.signal
+            });
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}`);
             }
 
             const dados = await response.json();
+
+            if (selectedEquipment !== equipamentoSelecionado) {
+                return;
+            }
 
             panelText.textContent =
                 `Temperatura: ${dados.temperatura ?? "Indisponível"} | ` +
@@ -170,16 +188,30 @@ document.addEventListener("DOMContentLoaded", () => {
             panelDetail.textContent =
                 `Status: ${dados.status ?? "Indisponível"} | ` +
                 `Atualização: ${dados.atualizacao ?? "Aguardando dados"}`;
+
         } catch (error) {
             console.error("Erro ao consultar telemetria:", error);
+
+            if (selectedEquipment !== equipamentoSelecionado) {
+                return;
+            }
 
             panelText.textContent =
                 "Não foi possível consultar os dados do equipamento.";
 
-            panelDetail.textContent =
-                "Verifique a disponibilidade da API e tente novamente.";
+            if (error.name === "AbortError") {
+                panelDetail.textContent =
+                    "A API demorou mais de 8 segundos para responder.";
+            } else {
+                panelDetail.textContent =
+                    `Erro: ${error.message}. Verifique a conexão com a API.`;
+            }
+
+        } finally {
+            clearTimeout(timeout);
         }
     }
+
 
     function configureHotspots(equipmentKey) {
         const config = equipmentConfig[equipmentKey];
